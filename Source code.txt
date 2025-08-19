@@ -1,0 +1,78 @@
+#include <ESP8266WiFi.h>
+#include <DHT.h>
+
+// Pin definitions
+#define DHT_PIN D4
+#define DHT_TYPE DHT11
+#define SOIL_MOISTURE_PIN A0
+
+// Initialize DHT sensor
+DHT dht(DHT_PIN, DHT_TYPE);
+
+// Timer variables
+unsigned long previousMillis = 0;
+const long interval = 1000; // 1-second interval
+
+void setup() {
+  Serial.begin(115200);
+
+  // Initialize DHT sensor
+  dht.begin();
+  Serial.println("Initializing DHT sensor...");
+  delay(2000); // Allow time for initialization
+
+  // Check if the sensor is working
+  float tempTest = dht.readTemperature();
+  if (isnan(tempTest)) {
+    Serial.println("DHT sensor initialization failed! Check connections.");
+  } else {
+    Serial.println("DHT sensor initialized successfully.");
+  }
+
+  // Initialize soil moisture pin
+  pinMode(SOIL_MOISTURE_PIN, INPUT);
+
+  Serial.println("Temperature, Humidity, and Soil Moisture Monitoring Started...");
+}
+
+void loop() {
+  // Current time
+  unsigned long currentMillis = millis();
+
+  // Check if 1 second has passed
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+
+    // Read temperature and humidity
+    float temperature = dht.readTemperature();
+    float humidity = dht.readHumidity();
+
+    // Read soil moisture
+    int soilMoisture = analogRead(SOIL_MOISTURE_PIN);
+
+    // Determine qualitative description
+    String moistureLevel;
+    if (soilMoisture > 800) {
+      moistureLevel = "Wet";
+    } else if (soilMoisture > 400) {
+      moistureLevel = "Moderate";
+    } else {
+      moistureLevel = "Dry";
+    }
+
+    // Check if temperature or humidity read failed
+    if (isnan(temperature) || isnan(humidity)) {
+      Serial.println("Failed to read from DHT sensor!");
+      return;
+    }
+
+    // Print values to Serial Monitor
+    Serial.println("\n--- Current Readings ---");
+    Serial.printf("Temperature: %.2f°C\n", temperature);
+    Serial.printf("Humidity: %.2f%%\n", humidity);
+    Serial.print("Soil Moisture (Raw): ");
+    Serial.println(soilMoisture);
+    Serial.print("Soil Moisture Level: ");
+    Serial.println(moistureLevel);
+  }
+}
